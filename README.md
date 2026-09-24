@@ -70,16 +70,30 @@ Add an `mcp-cluster-id` header so all tools operate on one cluster:
 
 > `mcp.json` must validate against the Agent Plugins 1.0.0 schema: `$schema` and `type` are required, and fields like `disabled` are rejected (an invalid file disables all MCP servers for the power).
 
+Things to know when scoping:
+
+- **Put the header in this power's `mcp.json`.** A `cockroachdb-cloud` entry in your Kiro user or workspace config is a *separate* server. Kiro may keep calling the power's unscoped server instead, and your scope is silently ignored. Keep one server entry.
+- **The agent won't change the scope.** If you ask about a cluster outside the scope, the `cockroachdb-getting-started` skill tells Kiro to say which cluster the connection is limited to and stop. It won't retry with a different `cluster_id`, look for another way in, or edit `mcp.json`. Only you change the scope.
+- **To work with a different cluster**, pick one:
+  1. Change `mcp-cluster-id` yourself, reconnect the server, and start a new chat.
+  2. Add a second, separately named server entry scoped to the other cluster.
+  3. Remove the header for org-wide access.
+- The header only limits which cluster the connection can use. It doesn't grant permissions. For service-account API keys, also limit the account's role to that cluster.
+
 ## Known limitations (managed MCP server)
 
 - `explain_query`: `SELECT` / `INSERT` / `CREATE TABLE` only; no `EXPLAIN ANALYZE`.
 - `show_statement`: introspective `SHOW` only, max 100 rows.
 - No access to `crdb_internal`, `system`, `pg_catalog`, `information_schema`, `pg_extension` — skills that need these fall back to `cockroach sql --url $DATABASE_URL`.
+- **Unclear out-of-scope error.** On a cluster-scoped connection, a request for another cluster returns `cluster_id is set in your MCP config; omit the cluster_id argument`. That reads like a workaround hint rather than a hard limit, and agents may respond by offering to edit `mcp.json`. The getting-started skill guards against this. Upstream feedback for the MCP team: word it as a limit, e.g. *"This connection is limited to cluster `<name>`. Requests for other clusters aren't allowed."*
 
 ## Roadmap
 
 - [x] Run `sync-skills.sh` and commit vendored skills
 - [x] Fix `mcp.json` schema compliance (Agent Plugins 1.0.0)
+- [x] Add cluster-scope guardrail to `cockroachdb-getting-started` (report and stop; never edit `mcp.json`)
+- [ ] Share out-of-scope error wording feedback with the MCP team (#mcp-cross-team-collab)
+- [ ] Confirm whether `list_clusters` respects `mcp-cluster-id`
 - [ ] Verify full managed-MCP tool list against a live staging cluster; update skill references
 - [ ] Add `cockroach sql` fallback notes to observability skills that query `crdb_internal`
 - [ ] Add CockroachDB Docs MCP server to `mcp.json` (confirm endpoint)
