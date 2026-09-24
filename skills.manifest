@@ -1,0 +1,13 @@
+# Upstream skills vendored into this power from
+# https://github.com/cockroachlabs/cockroachdb-skills (path under skills/).
+# Run scripts/sync-skills.sh to (re)copy them into ./skills/<skill-name>/.
+# Lines starting with # are ignored.
+
+cockroachdb-query-and-schema-design/cockroachdb-sql
+cockroachdb-application-development/designing-application-transactions
+cockroachdb-application-development/designing-multi-region-applications
+cockroachdb-onboarding-and-migrations/setting-up-local-cluster
+cockroachdb-onboarding-and-migrations/molt-fetch
+cockroachdb-onboarding-and-migrations/molt-verify
+cockroachdb-observability-and-diagnostics/profiling-statement-fingerprints
+cockroachdb-operations-and-lifecycle/reviewing-cluster-health
