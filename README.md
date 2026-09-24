@@ -9,7 +9,7 @@ Give your Kiro agent CockroachDB expertise on demand. When you mention Cockroach
 
 ## Layout
 
-This power uses Kiro's recommended [Agent Plugins format](https://kiro.dev/docs/powers/create/).
+This power uses Kiro's recommended [Agent Plugins 1.0.0 format](https://kiro.dev/docs/powers/create/).
 
 ```
 .
@@ -57,14 +57,18 @@ Add an `mcp-cluster-id` header so all tools operate on one cluster:
 
 ```json
 {
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
   "mcpServers": {
     "cockroachdb-cloud": {
+      "type": "streamable-http",
       "url": "https://cockroachlabs.cloud/mcp",
       "headers": { "mcp-cluster-id": "<your-cluster-id>" }
     }
   }
 }
 ```
+
+> `mcp.json` must validate against the Agent Plugins 1.0.0 schema: `$schema` and `type` are required, and fields like `disabled` are rejected (an invalid file disables all MCP servers for the power).
 
 ## Known limitations (managed MCP server)
 
@@ -74,18 +78,21 @@ Add an `mcp-cluster-id` header so all tools operate on one cluster:
 
 ## Roadmap
 
-- [ ] Run `sync-skills.sh` and commit vendored skills
+- [x] Run `sync-skills.sh` and commit vendored skills
+- [x] Fix `mcp.json` schema compliance (Agent Plugins 1.0.0)
 - [ ] Verify full managed-MCP tool list against a live staging cluster; update skill references
 - [ ] Add `cockroach sql` fallback notes to observability skills that query `crdb_internal`
 - [ ] Add CockroachDB Docs MCP server to `mcp.json` (confirm endpoint)
 - [ ] Add verified `ccloud` CLI examples to `cockroachdb-getting-started`
 - [ ] Test keyword activation doesn't collide with Neon / Supabase / Aurora powers
+- [ ] Add LICENSE, Privacy Policy link, and support contact (required for Kiro registry submission)
 - [ ] Move to Cockroach Labs org, make public, add "Add to Kiro" button
-- [ ] Pursue curated listing on [kiro.dev/powers](https://kiro.dev/powers/)
+- [ ] Submit to the curated registry at [kiro.dev/powers/submit](https://kiro.dev/powers/submit/)
 
 ## References
 
 - [Kiro: Create powers](https://kiro.dev/docs/powers/create/)
+- [Agent Plugins: MCP servers](https://agent-plugins.org/plugin-authors/mcp-servers)
 - [Connect to the CockroachDB Cloud MCP Server](https://www.cockroachlabs.com/docs/cockroachcloud/connect-to-the-cockroachdb-cloud-mcp-server)
 - [CockroachDB and AI](https://www.cockroachlabs.com/docs/stable/cockroachdb-and-ai)
 - [cockroachlabs/cockroachdb-skills](https://github.com/cockroachlabs/cockroachdb-skills)
