@@ -1,0 +1,27 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "cockroachdb",
+  "version": "0.1.0",
+  "description": "Build resilient, globally distributed apps on CockroachDB: connect to CockroachDB Cloud clusters, design schemas and transactions for distributed SQL, go multi-region, and migrate from PostgreSQL with MOLT.",
+  "author": {
+    "name": "Cockroach Labs",
+    "url": "https://www.cockroachlabs.com"
+  },
+  "keywords": [
+    "cockroachdb",
+    "cockroach",
+    "crdb",
+    "cockroachdb cloud",
+    "ccloud",
+    "distributed sql",
+    "multi-region",
+    "survival goals",
+    "regional by row",
+    "transaction retry",
+    "molt",
+    "postgres migration to cockroachdb"
+  ],
+  "homepage": "https://www.cockroachlabs.com/docs/stable/cockroachdb-and-ai",
+  "repository": "https://github.com/harshn08/cockroachdb-kiro-power",
+  "license": "Apache-2.0"
+}
