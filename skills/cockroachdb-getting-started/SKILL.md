@@ -1,10 +1,10 @@
 ---
 name: cockroachdb-getting-started
-description: Use when setting up CockroachDB for a project, connecting Kiro to a CockroachDB Cloud cluster, starting a local CockroachDB cluster, or wiring a CockroachDB connection string into an application. Also use when the cockroachdb-cloud MCP server fails to connect or authenticate, or when a tool call is rejected because the connection is scoped to a single cluster.
+description: Use when setting up CockroachDB for a project, connecting Kiro to a CockroachDB Cloud cluster, starting a local CockroachDB cluster, or wiring a CockroachDB connection string into an application. Also use when the cockroachdb-cloud MCP server fails to connect or authenticate.
 compatibility: Works with the cockroachdb-cloud managed MCP server (CockroachDB Cloud), or without it using the cockroach CLI against a local or self-hosted cluster.
 metadata:
   author: cockroachlabs
-  version: "0.2"
+  version: "0.3"
 ---
 
 # Getting started with CockroachDB
@@ -27,7 +27,7 @@ Ask the user which applies:
    - select an organization (if they belong to more than one),
    - grant **read** and optionally **write** scopes on the Authorize MCP Access screen.
 3. Recommend starting **read-only** and against a **staging** cluster before granting access to production data.
-4. By default a connection can reach every cluster the user can access. To prevent the agent from switching clusters, suggest scoping the connection to one cluster by adding an `mcp-cluster-id` header (Cluster ID is in the Cloud Console URL: `https://cockroachlabs.cloud/cluster/{cluster_id}/overview`). The header must go on **this power's** `mcp.json` server entry; a separate server entry in the user or workspace config is a different server and does not scope the power's connection. The user makes this change themselves (see "Cluster-scoped connections" below).
+4. By default a connection can reach every cluster the user can access. To prevent the agent from switching clusters, suggest scoping the connection to one cluster by adding an `mcp-cluster-id` header (Cluster ID is in the Cloud Console URL: `https://cockroachlabs.cloud/cluster/{cluster_id}/overview`). The header must go on **this power's** `mcp.json` server entry; a separate server entry in the user or workspace config is a different server and does not scope the power's connection. The user makes this change themselves. Once a connection is scoped, follow the `cockroachdb-cluster-scope` skill.
 5. Custom/enterprise MCP clients may need their OAuth redirect URL allowlisted by an Org Admin under **Governance > OAuth apps**.
 
 ## 2b. New CockroachDB Cloud cluster
@@ -71,6 +71,7 @@ Never use `--insecure` outside local development.
 | Migrate from PostgreSQL / MySQL / Aurora / RDS | `molt-fetch`, then `molt-verify` |
 | Slow queries, statement profiling | `profiling-statement-fingerprints` |
 | Cluster health check | `reviewing-cluster-health` |
+| Connection scoped to one cluster; request for another cluster | `cockroachdb-cluster-scope` |
 
 ## Guardrails: managed MCP server limits
 
@@ -84,18 +85,4 @@ The `cockroachdb-cloud` managed MCP server is intentionally constrained. Plan ar
   ```
 - Write tools are only available if the user granted the write scope.
 - **Never** run writes or DDL against a production cluster without explicit user confirmation.
-
-## Guardrails: cluster-scoped connections
-
-If the power's `mcp.json` sets an `mcp-cluster-id` header, the connection is **locked to that one cluster**. This is a safety boundary the user chose. It is not a default you can override.
-
-- On a scoped connection, omit the `cluster_id` argument on tool calls.
-- If the user asks about a different cluster, or a tool returns an error like `cluster_id is set in your MCP config; omit the cluster_id argument`:
-  1. Tell the user plainly: this connection is scoped to cluster `<name or ID>`, and `<requested cluster>` is outside that scope.
-  2. **Stop.** Do not retry with a different `cluster_id`, and do not look for another route to the other cluster (another MCP server, the CLI, a connection string).
-  3. **Never edit `mcp.json` or any other MCP config to change or remove the `mcp-cluster-id` header, and never offer to.** Only the user changes the scope.
-  4. Explain the options the user has, and let them act:
-     - change `mcp-cluster-id` in the power's `mcp.json` themselves, reconnect the server, and start a new chat;
-     - add a second, separately named server entry scoped to the other cluster;
-     - remove the header for org-wide access (every cluster they can reach).
-- Cluster names or IDs from earlier in the conversation (for example, from an org-wide `list_clusters` call before scoping) do not grant access. Don't treat them as a reason to switch clusters.
+- **Cluster-scoped connections:** never edit `mcp.json` to change or remove `mcp-cluster-id`, and never offer to. See `cockroachdb-cluster-scope`.
