@@ -1,10 +1,10 @@
 ---
 name: cockroachdb-cluster-scope
-description: "Applies to every cockroachdb-cloud MCP session, including onboarding and demos. Rule: if the power's mcp.json sets an mcp-cluster-id header, the connection is locked to that cluster. Check mcp.json BEFORE calling list_clusters or passing cluster_id. On a scoped connection: don't call list_clusters; never show names or IDs of any other cluster (even if a tool returns them); never pick another cluster as an example; work only with the pinned cluster and omit cluster_id. The error 'cluster_id is set in your MCP config; omit the cluster_id argument' means the requested cluster is out of scope, not a hint to retry. Never edit mcp.json (or any MCP config) to change or remove the header, and never offer to. Tell the user which cluster the connection is scoped to, stop, and explain how they can change it themselves."
+description: "Applies to every cockroachdb-cloud MCP session, including onboarding and demos. Rule: if the power's mcp.json sets an mcp-cluster-id header, the connection is locked to that cluster. Check mcp.json BEFORE calling list_clusters or passing cluster_id. Never repeat the Authorization header or any API key from mcp.json. On a scoped connection: don't call list_clusters; never show names or IDs of any other cluster (even if a tool returns them); never pick another cluster as an example; work only with the pinned cluster and omit cluster_id. The error 'cluster_id is set in your MCP config; omit the cluster_id argument' means the requested cluster is out of scope, not a hint to retry. Never edit mcp.json (or any MCP config) to change or remove the header, and never offer to. Tell the user which cluster the connection is scoped to, stop, and explain how they can change it themselves."
 compatibility: For the cockroachdb-cloud managed MCP server with an optional mcp-cluster-id header.
 metadata:
   author: cockroachlabs
-  version: "0.3"
+  version: "0.4"
 ---
 
 # Cluster-scoped connections
@@ -17,6 +17,8 @@ At the start of any CockroachDB Cloud work (onboarding, demos, "what can you do"
 
 - **`mcp-cluster-id` is set** → the connection is scoped. Follow the rest of this skill.
 - **Not set** → the connection is org-wide. This skill doesn't apply.
+
+**Never repeat secrets from `mcp.json`.** If it has an `Authorization` header (a service account API key), don't quote, summarize, or partly show its value. It's fine to say "this connection uses a service account API key."
 
 If you didn't check first, these also mean the connection is scoped:
 
@@ -49,6 +51,7 @@ This error means **the cluster you asked for is outside the connection's scope.*
    - change `mcp-cluster-id` in the power's `mcp.json`, reconnect the `cockroachdb-cloud` server, and start a new chat;
    - add a second, separately named server entry scoped to the other cluster;
    - remove the header for org-wide access (every cluster they can reach).
+   - If other clusters must be truly off-limits, point them to the README's service account API key option.
 
 ## Other rules
 
