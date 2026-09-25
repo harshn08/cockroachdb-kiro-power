@@ -19,6 +19,7 @@ This power uses Kiro's recommended [Agent Plugins 1.0.0 format](https://kiro.dev
 ├── scripts/sync-skills.sh   # Copies upstream skills into ./skills
 └── skills/
     ├── cockroachdb-getting-started/   # Native to this power (onboarding + MCP guardrails)
+    ├── cockroachdb-cluster-scope/     # Native to this power (cluster-scope guardrail)
     └── <vendored skills>/             # From cockroachlabs/cockroachdb-skills
 ```
 
@@ -27,6 +28,7 @@ This power uses Kiro's recommended [Agent Plugins 1.0.0 format](https://kiro.dev
 | Skill | Source |
 |---|---|
 | `cockroachdb-getting-started` | this repo |
+| `cockroachdb-cluster-scope` | this repo |
 | `cockroachdb-sql` | [cockroachdb-skills](https://github.com/cockroachlabs/cockroachdb-skills) |
 | `designing-application-transactions` | cockroachdb-skills |
 | `designing-multi-region-applications` | cockroachdb-skills |
@@ -42,6 +44,8 @@ Vendored skills are kept in sync with upstream (source of truth) via:
 git add skills && git commit -m "Sync skills from cockroachdb-skills@$(cat skills/.upstream-sha | cut -c1-7)"
 ```
 
+> Make sure `sync-skills.sh` only replaces the vendored skills listed in `skills.manifest` and leaves the native skills (`cockroachdb-getting-started`, `cockroachdb-cluster-scope`) alone.
+
 ## Install locally (for testing)
 
 1. `git clone` this repo and run `./scripts/sync-skills.sh`.
@@ -50,6 +54,8 @@ git add skills && git commit -m "Sync skills from cockroachdb-skills@$(cat skill
 4. Authenticate the `cockroachdb-cloud` MCP server when prompted (browser OAuth; choose read and/or write scope).
 
 Tip: start read-only against a staging cluster.
+
+> **Changes don't apply automatically.** Kiro copies the power into `~/.kiro/powers/installed/` when you install it. After you pull or edit the repo, reinstall the power and start a new chat.
 
 ### Optional: scope to a single cluster
 
@@ -73,7 +79,7 @@ Add an `mcp-cluster-id` header so all tools operate on one cluster:
 Things to know when scoping:
 
 - **Put the header in this power's `mcp.json`.** A `cockroachdb-cloud` entry in your Kiro user or workspace config is a *separate* server. Kiro may keep calling the power's unscoped server instead, and your scope is silently ignored. Keep one server entry.
-- **The agent won't change the scope.** If you ask about a cluster outside the scope, the `cockroachdb-getting-started` skill tells Kiro to say which cluster the connection is limited to and stop. It won't retry with a different `cluster_id`, look for another way in, or edit `mcp.json`. Only you change the scope.
+- **The agent won't change the scope.** If you ask about a cluster outside the scope, the `cockroachdb-cluster-scope` skill tells Kiro to say which cluster the connection is limited to and stop. It won't retry with a different `cluster_id`, look for another way in, or edit `mcp.json`. Only you change the scope. The rule is written into the skill's description, so it's in context even when the full skill isn't loaded. It's still guidance to the agent, not something enforced, so keep file-edit approval on in Kiro.
 - **To work with a different cluster**, pick one:
   1. Change `mcp-cluster-id` yourself, reconnect the server, and start a new chat.
   2. Add a second, separately named server entry scoped to the other cluster.
@@ -85,13 +91,19 @@ Things to know when scoping:
 - `explain_query`: `SELECT` / `INSERT` / `CREATE TABLE` only; no `EXPLAIN ANALYZE`.
 - `show_statement`: introspective `SHOW` only, max 100 rows.
 - No access to `crdb_internal`, `system`, `pg_catalog`, `information_schema`, `pg_extension` — skills that need these fall back to `cockroach sql --url $DATABASE_URL`.
-- **Unclear out-of-scope error.** On a cluster-scoped connection, a request for another cluster returns `cluster_id is set in your MCP config; omit the cluster_id argument`. That reads like a workaround hint rather than a hard limit, and agents may respond by offering to edit `mcp.json`. The getting-started skill guards against this. Upstream feedback for the MCP team: word it as a limit, e.g. *"This connection is limited to cluster `<name>`. Requests for other clusters aren't allowed."*
+- **Misleading out-of-scope error.** On a cluster-scoped connection, a call with another cluster's `cluster_id` is correctly rejected with `cluster_id is set in your MCP config; omit the cluster_id argument`. But agents read that as an instruction. In testing, Kiro:
+  1. called `list_databases` with `j4-mr-demo`'s ID and was rejected;
+  2. retried **without** `cluster_id`, as the error suggests, and got the *pinned* cluster's databases (`hshah-memori-demo`);
+  3. read `mcp.json` and offered to rewrite `mcp-cluster-id` to `j4-mr-demo`.
+
+  The `cockroachdb-cluster-scope` skill guards against this. Upstream feedback for the MCP team: word the error as a limit and don't suggest a retry, e.g. *"This connection is limited to cluster `<name>` (`<id>`). Requests for other clusters aren't allowed. To use a different cluster, the user must change the MCP configuration."*
 
 ## Roadmap
 
 - [x] Run `sync-skills.sh` and commit vendored skills
 - [x] Fix `mcp.json` schema compliance (Agent Plugins 1.0.0)
-- [x] Add cluster-scope guardrail to `cockroachdb-getting-started` (report and stop; never edit `mcp.json`)
+- [x] Add cluster-scope guardrail (`cockroachdb-cluster-scope` skill; report and stop, never edit `mcp.json`)
+- [ ] Retest cluster-scope guardrail in Kiro after reinstall
 - [ ] Share out-of-scope error wording feedback with the MCP team (#mcp-cross-team-collab)
 - [ ] Confirm whether `list_clusters` respects `mcp-cluster-id`
 - [ ] Verify full managed-MCP tool list against a live staging cluster; update skill references
