@@ -78,19 +78,20 @@ Add an `mcp-cluster-id` header so all tools operate on one cluster:
 
 Things to know when scoping:
 
+- **The header limits the agent, not the user.** It keeps Kiro working on one cluster. It isn't an access control. Anyone who can edit `mcp.json` can change it, and the OAuth login still has access to every cluster the user can reach. To actually limit a person's access, restrict their CockroachDB Cloud role (or use a service account whose role covers only that cluster).
 - **Put the header in this power's `mcp.json`.** A `cockroachdb-cloud` entry in your Kiro user or workspace config is a *separate* server. Kiro may keep calling the power's unscoped server instead, and your scope is silently ignored. Keep one server entry.
-- **The agent won't change the scope.** If you ask about a cluster outside the scope, the `cockroachdb-cluster-scope` skill tells Kiro to say which cluster the connection is limited to and stop. It won't retry with a different `cluster_id`, look for another way in, or edit `mcp.json`. Only you change the scope. The rule is written into the skill's description, so it's in context even when the full skill isn't loaded. It's still guidance to the agent, not something enforced, so keep file-edit approval on in Kiro.
-- **To work with a different cluster**, pick one:
+- **The agent won't change the scope or reveal other clusters.** The `cockroachdb-cluster-scope` skill tells Kiro to check `mcp.json` first, skip `list_clusters`, never show other clusters' names or IDs, and never edit `mcp.json`. If you ask about a cluster outside the scope, it says which cluster the connection is limited to and stops. The rule is written into the skill's description, so it's in context even when the full skill isn't loaded. It's still guidance to the agent, not something enforced, so keep file-edit approval on in Kiro.
+- **To work with a different cluster**, get its ID from the Cloud Console and pick one:
   1. Change `mcp-cluster-id` yourself, reconnect the server, and start a new chat.
   2. Add a second, separately named server entry scoped to the other cluster.
   3. Remove the header for org-wide access.
-- The header only limits which cluster the connection can use. It doesn't grant permissions. For service-account API keys, also limit the account's role to that cluster.
 
 ## Known limitations (managed MCP server)
 
 - `explain_query`: `SELECT` / `INSERT` / `CREATE TABLE` only; no `EXPLAIN ANALYZE`.
 - `show_statement`: introspective `SHOW` only, max 100 rows.
 - No access to `crdb_internal`, `system`, `pg_catalog`, `information_schema`, `pg_extension` — skills that need these fall back to `cockroach sql --url $DATABASE_URL`.
+- **`list_clusters` ignores `mcp-cluster-id`.** On a scoped connection it still returns every cluster in the org, with names and IDs. In testing, Kiro called it during onboarding, showed several other clusters, and picked one of them (`hshah-aws-bedrock`, with its ID) as an example. The `cockroachdb-cluster-scope` skill tells Kiro not to call `list_clusters` on a scoped connection and not to repeat other clusters. Upstream feedback for the MCP team: on a scoped connection, `list_clusters` should return only the pinned cluster.
 - **Misleading out-of-scope error.** On a cluster-scoped connection, a call with another cluster's `cluster_id` is correctly rejected with `cluster_id is set in your MCP config; omit the cluster_id argument`. But agents read that as an instruction. In testing, Kiro:
   1. called `list_databases` with `j4-mr-demo`'s ID and was rejected;
   2. retried **without** `cluster_id`, as the error suggests, and got the *pinned* cluster's databases (`hshah-memori-demo`);
@@ -103,9 +104,10 @@ Things to know when scoping:
 - [x] Run `sync-skills.sh` and commit vendored skills
 - [x] Fix `mcp.json` schema compliance (Agent Plugins 1.0.0)
 - [x] Add cluster-scope guardrail (`cockroachdb-cluster-scope` skill; report and stop, never edit `mcp.json`)
-- [ ] Retest cluster-scope guardrail in Kiro after reinstall
-- [ ] Share out-of-scope error wording feedback with the MCP team (#mcp-cross-team-collab)
-- [ ] Confirm whether `list_clusters` respects `mcp-cluster-id`
+- [x] Confirm whether `list_clusters` respects `mcp-cluster-id` (it doesn't; see Known limitations)
+- [ ] Retest cluster-scope guardrail in Kiro after reinstall (onboarding prompt + out-of-scope prompt)
+- [ ] Confirm `get_cluster` works without `cluster_id` on a scoped connection
+- [ ] Share feedback with the MCP team (#mcp-cross-team-collab): out-of-scope error wording, and `list_clusters` returning all clusters on a scoped connection
 - [ ] Verify full managed-MCP tool list against a live staging cluster; update skill references
 - [ ] Add `cockroach sql` fallback notes to observability skills that query `crdb_internal`
 - [ ] Add CockroachDB Docs MCP server to `mcp.json` (confirm endpoint)
